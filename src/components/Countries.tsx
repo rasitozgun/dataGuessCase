@@ -4,7 +4,7 @@ import { GET_COUNTRIES } from "@/graphql/queries";
 import { DataTable } from "@/components/datatable/data-table";
 import SearchInput from "@/components/datatable/input";
 import { Button } from "@/components/ui/button";
-import { Country, FilterProps } from "@/components/types";
+import { Country } from "@/components/types";
 
 import { useEffect, useState } from "react";
 
@@ -13,7 +13,6 @@ export default function Countries() {
 	const [page, setPage] = useState(1);
 	const { loading, error, data, client } = useQuery(GET_COUNTRIES);
 	const [selectedRow, setSelectedRow] = useState<Country | null>(null);
-
 	const [rows, setRows] = useState<Country[]>();
 	const [search, setSearch] = useState("");
 
@@ -80,7 +79,15 @@ export default function Countries() {
 			},
 		);
 
+		if (newRows.length > 10) {
+			setSelectedRow(newRows[9]);
+		} else {
+			const lastIndex = newRows.length - 1;
+			setSelectedRow(lastIndex >= 0 ? newRows[lastIndex] : null);
+		}
+
 		setRows(newRows);
+		setSearch("");
 		setPage(1);
 	};
 
