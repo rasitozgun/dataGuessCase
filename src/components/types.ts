@@ -10,6 +10,11 @@ export interface Country {
 	continent: Continent;
 }
 
+export interface FilterProps {
+	key: string;
+	value: string;
+}
+
 export interface Continent {
 	__typename: string;
 	name: string;

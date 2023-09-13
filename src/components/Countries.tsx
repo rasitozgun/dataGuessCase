@@ -4,7 +4,7 @@ import { GET_COUNTRIES } from "@/graphql/queries";
 import { DataTable } from "@/components/datatable/data-table";
 import SearchInput from "@/components/datatable/input";
 import { Button } from "@/components/ui/button";
-import { Country } from "@/components/types";
+import { Country, FilterProps } from "@/components/types";
 
 import { useEffect, useState } from "react";
 
@@ -13,6 +13,7 @@ export default function Countries() {
 	const [page, setPage] = useState(1);
 	const { loading, error, data, client } = useQuery(GET_COUNTRIES);
 	const [selectedRow, setSelectedRow] = useState<Country | null>(null);
+
 	const [rows, setRows] = useState<Country[]>();
 	const [search, setSearch] = useState("");
 
@@ -30,20 +31,55 @@ export default function Countries() {
 				);
 			}
 		}
-	}, [data, rows]);
-
-	console.log(search);
+	}, [data]);
 
 	const handleClick = async () => {
 		const res = await client.refetchQueries({
 			include: [GET_COUNTRIES],
+			updateCache: (cache) => {
+				cache.evict({ fieldName: "countries" });
+			},
 		});
 
-		const a = "code";
+		const regex: RegExp =
+			/search:(\w+)[\s,.;]+group:(\w+)|group:(\w+)[\s,.;]+search:(\w+)/g;
+		let result: Record<string, string> = {
+			search: search,
+			group: "name",
+		};
 
-		const newRows = res[0].data.countries.filter((country: Country) =>
-			country[a].toLocaleLowerCase().includes("a"),
+		if (search.match(regex) !== null) {
+			//split search with , ; . and space
+			const searchArr = search.trim().split(/[\s,;]+/);
+			result.search = searchArr[0].split(":")[1];
+			result.group = searchArr[1].split(":")[1];
+		}
+
+		const newRows = res[0].data.countries.filter(
+			(country: Country) => {
+				if (result.group === "name") {
+					return country.name
+						.toLowerCase()
+						.includes(result.search.toLowerCase());
+				} else if (result.group === "continent.name") {
+					return country.continent.name
+						.toLowerCase()
+						.includes(result.search.toLowerCase());
+				} else if (result.group === "continent.code") {
+					return country.continent.code
+						.toLowerCase()
+						.includes(result.search.toLowerCase());
+				} else if (
+					result.group === "currency" &&
+					country.currency !== null
+				) {
+					return country.currency
+						.toLowerCase()
+						.includes(result.search.toLowerCase());
+				}
+			},
 		);
+
 		setRows(newRows);
 		setPage(1);
 	};
