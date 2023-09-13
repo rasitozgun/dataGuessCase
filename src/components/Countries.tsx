@@ -1,80 +1,112 @@
 import { useQuery } from "@apollo/client";
-import { DataTable } from "./datatable/data-table";
 import { GET_COUNTRIES } from "@/graphql/queries";
+
+import { DataTable } from "@/components/datatable/data-table";
 import SearchInput from "@/components/datatable/input";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
+import { Country } from "@/components/types";
+
 import { useEffect, useState } from "react";
-import { Country } from "./types";
 
 export default function Countries() {
 	const dataCountPerPage = 10;
 	const [page, setPage] = useState(1);
-
-	const { loading, error, data, refetch } = useQuery(GET_COUNTRIES);
-
-	const handleClick = () => {
-		refetch();
-		setRows(data.countries);
-	};
+	const { loading, error, data, client } = useQuery(GET_COUNTRIES);
+	const [selectedRow, setSelectedRow] = useState<Country | null>(null);
 	const [rows, setRows] = useState<Country[]>();
-	const [selectedRow, setSelectedRow] = useState<string | null>(null);
+	const [search, setSearch] = useState("");
 
 	useEffect(() => {
 		if (!loading) {
-			setRows(data.countries);
-			setSelectedRow(
-				data.countries.length > 10
-					? data.countries[9].code
-					: data.countries[data.countries.length - 1].code,
-			);
-		}
-	}, [data]);
+			const updatedRows = data?.countries || []; // Varsayılan olarak boş bir dizi atayın
+			setRows(updatedRows);
 
-	const handleRowClick = (countryCode: string) => {
-		// Seçilen satırı güncelle
-		setSelectedRow(countryCode);
-		console.log(selectedRow);
+			if (updatedRows.length > 10) {
+				setSelectedRow(updatedRows[9]);
+			} else {
+				const lastIndex = updatedRows.length - 1;
+				setSelectedRow(
+					lastIndex >= 0 ? updatedRows[lastIndex] : null,
+				);
+			}
+		}
+	}, [data, rows]);
+
+	console.log(search);
+
+	const handleClick = async () => {
+		const res = await client.refetchQueries({
+			include: [GET_COUNTRIES],
+		});
+
+		const a = "code";
+
+		const newRows = res[0].data.countries.filter((country: Country) =>
+			country[a].toLocaleLowerCase().includes("a"),
+		);
+		setRows(newRows);
+		setPage(1);
 	};
 
-	if (loading) return <p>Loading...</p>;
+	const handleRowClick = (country: Country) => {
+		// Seçilen satırı güncelle
+		setSelectedRow(selectedRow === country ? null : country);
+	};
+
 	if (error) return <p>{error.message} </p>;
 
 	return (
 		<div className="w-full bg-card p-7 shadow-xl rounded-md">
-			<SearchInput handleClick={handleClick} loading={loading} />
-			<DataTable
-				data={rows?.slice(
-					page * dataCountPerPage - dataCountPerPage,
-					page * dataCountPerPage,
-				)}
+			<SearchInput
+				handleClick={handleClick}
 				loading={loading}
-				handleRowClick={handleRowClick}
-				selectedRow={selectedRow}
-				error={error}
+				country={selectedRow}
+				search={search}
+				setSearch={setSearch}
 			/>
-			<div className="flex items-center justify-end space-x-2 py-4">
-				<div className="space-x-2">
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={page === 1}
-						onClick={() => setPage(page - 1)}
-					>
-						Previous
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => setPage(page + 1)}
-						disabled={
-							page * dataCountPerPage >=
-							data.countries?.length
+			{loading && <p>Loading...</p>}
+			{!loading && (
+				<>
+					<DataTable
+						data={
+							rows &&
+							rows?.slice(
+								page * dataCountPerPage - dataCountPerPage,
+								page * dataCountPerPage,
+							)
 						}
-					>
-						Next
-					</Button>
-				</div>
-			</div>
+						loading={loading}
+						handleRowClick={handleRowClick}
+						selectedRow={selectedRow}
+						error={error}
+					/>
+					<div className="flex items-center justify-end space-x-2 py-4">
+						<p className="mx-5">Page: {page}</p>
+
+						<div className="space-x-2">
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={page === 1}
+								onClick={() => setPage(page - 1)}
+							>
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setPage(page + 1)}
+								disabled={
+									rows &&
+									page * dataCountPerPage >= rows.length
+								}
+							>
+								Next
+							</Button>
+						</div>
+					</div>
+				</>
+			)}
 		</div>
 	);
 }

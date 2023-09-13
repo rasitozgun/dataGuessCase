@@ -18,8 +18,13 @@ export interface Continent {
 
 export type DataTableProps = {
 	data: Country[] | undefined;
-	handleRowClick: (countryCode: string) => void;
+	handleRowClick: (country: Country) => void;
 	loading: boolean;
 	error: any;
-	selectedRow: string | null;
+	selectedRow: Country | null;
 };
+
+export interface Search {
+	search: string;
+	group: string;
+}

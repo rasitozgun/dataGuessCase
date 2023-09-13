@@ -55,17 +55,15 @@ export function DataTable({
 								</TableCell>
 							</TableRow>
 						)}
-						{data?.map((country: Country) => (
+						{data?.map((country: Country, index) => (
 							<TableRow
-								key={country.code}
+								key={index + "-" + country.code}
 								className={`cursor-pointer ${
-									selectedRow === country.code
-										? "bg-destructive"
+									selectedRow === country
+										? "bg-destructive hover:bg-destructive-hover"
 										: ""
 								}`}
-								onClick={() =>
-									handleRowClick(country.code)
-								}
+								onClick={() => handleRowClick(country)}
 							>
 								<TableCell>{country.code}</TableCell>
 								<TableCell>{country.name}</TableCell>
